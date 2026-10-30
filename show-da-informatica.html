@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Show da Informática - SaaS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #00f0ff;
+            --secondary: #8b5cf6;
+            --accent: #f59e0b;
+            --bg-dark: #0a0a1a;
+            --bg-card: rgba(10, 10, 30, 0.85);
+            --text: #e0e7ff;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --glow: 0 0 30px rgba(0, 240, 255, 0.5);
+        }
+
+        [data-theme="matrix"] {
+            --primary: #00ff41;
+            --secondary: #008f11;
+            --accent: #00ff41;
+            --bg-dark: #0d0208;
+            --bg-card: rgba(0, 15, 2, 0.9);
+        }
+
+        [data-theme="retro"] {
+            --primary: #ff00ff;
+            --secondary: #ffff00;
+            --accent: #00ffff;
+            --bg-dark: #1a0a2e;
+            --bg-card: rgba(26, 10, 46, 0.9);
+        }
+
+        [data-theme="minimal"] {
+            --primary: #ffffff;
+            --secondary: #888888;
+            --accent: #cccccc;
+            --bg-dark: #000000;
+            --bg-card: rgba(20, 20, 20, 0.95);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+        }
+
+        .logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat-box {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .lives-container {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .life {
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .life.lost {
+            filter: grayscale(1);
+            opacity: 0.3;
+        }
+
+        /* Main Menu */
+        .screen {
+            display: none;
+            flex: 1;
+            padding: 2rem;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .menu-title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .menu-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .player-setup {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .text-input {
+            padding: 1rem;
+            background: var(--bg-card);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+
+        .avatar-selector {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 0.5rem;
+        }
+
+        .avatar-option {
+            aspect-ratio: 1;
+            font-size: 1.5rem;
+            background: var(--bg-card);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-option:hover {
+            transform: scale(1.1);
+            border-color: var(--secondary);
+        }
+
+        .avatar-option.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+        }
+
+        .btn {
+            font-family: 'Orbitron', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0, 240, 255, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Category Selection */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .category-card {
+            padding: 2rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            font-family: inherit;
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+            z-index: 1;
+        }
+
+        .category-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+
+        .category-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-name {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .category-count {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* Game Screen */
+        .game-area {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .question-number {
+            font-family: 'Orbitron', monospace;
+            font-size: 1rem;
+            color: var(--secondary);
+        }
+
+        .combo-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(239, 68, 68, 0.2));
+            border-radius: 20px;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .combo-display.active {
+            opacity: 1;
+        }
+
+        .combo-label {
+            font-size: 0.875rem;
+            color: var(--accent);
+        }
+
+        .combo-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .timer-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+
+        .timer-ring {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 4;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: center;
+            transition: stroke-dashoffset 1s linear;
+        }
+
+        .timer-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.1);
+            stroke-width: 4;
+        }
+
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .question-card {
+            padding: 2rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .question-category {
+            font-size: 0.875rem;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+        }
+
+        .question-text {
+            font-size: 1.5rem;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        .answers-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .answer-btn {
+            padding: 1.25rem;
+            background: var(--bg-card);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.125rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .answer-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        .answer-btn.correct {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.2);
+            animation: pulse-correct 0.5s ease;
+        }
+
+        .answer-btn.incorrect {
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.2);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes pulse-correct {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .answer-letter {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            color: var(--primary);
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 240, 255, 0.1);
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .hints-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .hint-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid var(--secondary);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hint-btn:hover:not(:disabled) {
+            background: rgba(139, 92, 246, 0.4);
+        }
+
+        .hint-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .hint-count {
+            background: var(--secondary);
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+
+        /* Theme Selector */
+        .theme-selector {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+
+        .theme-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-btn.active {
+            border-color: white;
+        }
+
+        .theme-btn[data-theme="cyber"] { background: linear-gradient(135deg, #00f0ff, #8b5cf6); }
+        .theme-btn[data-theme="matrix"] { background: linear-gradient(135deg, #00ff41, #008f11); }
+        .theme-btn[data-theme="retro"] { background: linear-gradient(135deg, #ff00ff, #ffff00); }
+        .theme-btn[data-theme="minimal"] { background: linear-gradient(135deg, #fff, #888); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 2rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 3rem;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            animation: modalIn 0.5s ease;
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+        }
+
+        .modal-score {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .modal-stat {
+            padding: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .achievements-earned {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .achievement-badge {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--accent), var(--secondary));
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 700;
+        }
+
+        /* King Modal */
+        .king-modal {
+            border: 3px solid gold;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(139, 92, 246, 0.1));
+        }
+
+        .king-crown {
+            font-size: 5rem;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Ranking */
+        .ranking-container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .ranking-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .ranking-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            font-weight: 900;
+        }
+
+        .king-display {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(255, 215, 0, 0.1));
+            border: 2px solid gold;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .king-avatar {
+            font-size: 3rem;
+        }
+
+        .king-info {
+            flex: 1;
+        }
+
+        .king-label {
+            font-size: 0.75rem;
+            color: gold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .king-name {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .king-score {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.25rem;
+            color: gold;
+        }
+
+        .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+
+        .ranking-item.current-player {
+            border-color: var(--primary);
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        .rank-position {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            width: 40px;
+            text-align: center;
+        }
+
+        .rank-position.gold { color: gold; }
+        .rank-position.silver { color: silver; }
+        .rank-position.bronze { color: #cd7f32; }
+
+        .rank-avatar {
+            font-size: 1.5rem;
+        }
+
+        .rank-info {
+            flex: 1;
+        }
+
+        .rank-name {
+            font-weight: 700;
+        }
+
+        .rank-score {
+            font-family: 'Orbitron', monospace;
+            color: var(--primary);
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .game-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-stats {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .answers-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .avatar-selector {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body data-theme="cyber">
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="game-container">
+        <header class="game-header" id="game-header" style="display: none;">
+            <div class="logo">SHOW DA INFORMATICA</div>
+            <div class="header-stats">
+                <div class="stat-box">
+                    <div>
+                        <div class="stat-label">Pontos</div>
+                        <div class="stat-value" id="score-display">0</div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div>
+                        <div class="stat-label">Vidas</div>
+                        <div class="lives-container" id="lives-display">
+                            <span class="life">❤</span>
+                            <span class="life">❤</span>
+                            <span class="life">❤</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="theme-selector">
+                    <button class="theme-btn active" data-theme="cyber" title="Cyber"></button>
+                    <button class="theme-btn" data-theme="matrix" title="Matrix"></button>
+                    <button class="theme-btn" data-theme="retro" title="Retro"></button>
+                    <button class="theme-btn" data-theme="minimal" title="Minimal"></button>
+                </div>
+            </div>
+        </header>
+
+        <div class="screen active" id="menu-screen">
+            <h1 class="menu-title">SHOW DA INFORMATICA</h1>
+            <p class="menu-subtitle">O maior desafio de conhecimento em tecnologia</p>
+            
+            <div class="player-setup">
+                <div class="input-group">
+                    <label class="input-label">Seu Nome</label>
+                    <input type="text" class="text-input" id="player-name" placeholder="Digite seu nome..." maxlength="20">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Escolha seu Avatar</label>
+                    <div class="avatar-selector" id="avatar-selector"></div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="start-btn" disabled>Iniciar Jogo</button>
+            <button class="btn btn-secondary" id="ranking-btn" style="margin-top: 1rem;">Ver Ranking</button>
+        </div>
+
+        <div class="screen" id="category-screen">
+            <h2 class="menu-title" style="font-size: 2rem;">Escolha uma Categoria</h2>
+            <p class="menu-subtitle">Cada rodada possui 10 perguntas aleatorias</p>
+            
+            <div class="categories-grid" id="categories-grid"></div>
+            
+            <button class="btn btn-secondary" id="back-menu-btn" style="margin-top: 2rem;">Voltar ao Menu</button>
+        </div>
+
+        <div class="screen" id="game-screen">
+            <div class="game-area">
+                <div class="question-header">
+                    <span class="question-number" id="question-number">Pergunta 1/10</span>
+                    <div class="combo-display" id="combo-display">
+                        <span class="combo-label">COMBO</span>
+                        <span class="combo-value" id="combo-value">x1</span>
+                    </div>
+                </div>
+
+                <div class="timer-container">
+                    <svg viewBox="0 0 80 80" width="80" height="80">
+                        <circle class="timer-bg" cx="40" cy="40" r="36"/>
+                        <circle class="timer-ring" id="timer-ring" cx="40" cy="40" r="36"/>
+                    </svg>
+                    <span class="timer-text" id="timer-text">30</span>
+                </div>
+
+                <div class="question-card">
+                    <div class="question-category" id="question-category">Categoria</div>
+                    <p class="question-text" id="question-text">Carregando pergunta...</p>
+                </div>
+
+                <div class="answers-grid" id="answers-grid"></div>
+
+                <div class="hints-container">
+                    <button class="hint-btn" id="hint-5050">
+                        <span>50/50</span>
+                        <span class="hint-count" id="hint-5050-count">1</span>
+                    </button>
+                    <button class="hint-btn" id="hint-skip">
+                        <span>Pular</span>
+                        <span class="hint-count" id="hint-skip-count">1</span>
+                    </button>
+                    <button class="hint-btn" id="hint-time">
+                        <span>+10s</span>
+                        <span class="hint-count" id="hint-time-count">1</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="screen" id="ranking-screen">
+            <div class="ranking-container">
+                <div class="ranking-header">
+                    <h2 class="ranking-title">RANKING MENSAL</h2>
+                    <p class="menu-subtitle" id="ranking-month"></p>
+                </div>
+
+                <div class="king-display" id="king-display" style="display: none;">
+                    <span class="king-avatar" id="king-avatar">👑</span>
+                    <div class="king-info">
+                        <div class="king-label">REI DA RODADA</div>
+                        <div class="king-name" id="king-name">---</div>
+                    </div>
+                    <div class="king-score" id="king-score">0 pts</div>
+                </div>
+
+                <div class="ranking-list" id="ranking-list"></div>
+
+                <button class="btn btn-secondary" id="back-from-ranking" style="margin-top: 2rem;">Voltar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="game-over-modal">
+        <div class="modal">
+            <h2 class="modal-title" id="modal-title">Fim de Jogo</h2>
+            <div class="modal-score" id="modal-score">0</div>
+            <p>pontos</p>
+            
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <div class="stat-label">Acertos</div>
+                    <div class="stat-value" id="modal-correct">0</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="stat-label">Maior Combo</div>
+                    <div class="stat-value" id="modal-combo">0</div>
+                </div>
+            </div>
+
+            <div class="achievements-earned" id="achievements-earned"></div>
+
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <button class="btn btn-primary" id="play-again-btn">Jogar Novamente</button>
+                <button class="btn btn-secondary" id="go-menu-btn">Menu Principal</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="king-modal">
+        <div class="modal king-modal">
+            <div class="king-crown">👑</div>
+            <h2 class="modal-title" style="color: gold;">DESAFIO DO REI</h2>
+            <p style="margin: 1rem 0;">Voce alcancou 9 acertos consecutivos!</p>
+            <p style="color: var(--accent);">Acerte a pergunta e ganhe 1000 pontos + titulo de REI!</p>
+            <p style="color: var(--danger); font-size: 0.875rem; margin-top: 0.5rem;">Errar = perder toda a pontuacao atual</p>
+            <button class="btn btn-primary" id="accept-king-btn" style="margin-top: 1.5rem;">Aceitar Desafio</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== THREE.JS BACKGROUND ====================
+        let scene, camera, renderer, particles, shipElements = [];
+        let animationId = null;
+        
+        function init3DBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+            
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            const particleGeometry = new THREE.BufferGeometry();
+            const particleCount = 500;
+            const positions = new Float32Array(particleCount * 3);
+            
+            for(let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 50;
+                positions[i + 1] = (Math.random() - 0.5) * 50;
+                positions[i + 2] = (Math.random() - 0.5) * 50;
+            }
+            
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            const particleMaterial = new THREE.PointsMaterial({
+                size: 0.05,
+                color: 0x00f0ff,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+            
+            createShipInterior();
+            
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+            
+            const light1 = new THREE.PointLight(0x00f0ff, 1, 10);
+            light1.position.set(2, 2, 2);
+            scene.add(light1);
+            
+            const light2 = new THREE.PointLight(0x8b5cf6, 1, 10);
+            light2.position.set(-2, -2, 2);
+            scene.add(light2);
+            
+            animate3D();
+        }
+        
+        function createShipInterior() {
+            shipElements.forEach(el => scene.remove(el));
+            shipElements = [];
+            
+            const archGeometry = new THREE.TorusGeometry(3, 0.05, 8, 32);
+            
+            for(let i = 0; i < 5; i++) {
+                const archMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x00f0ff,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const arch = new THREE.Mesh(archGeometry, archMaterial);
+                arch.position.z = -i * 3 - 5;
+                arch.rotation.x = Math.PI / 2;
+                scene.add(arch);
+                shipElements.push(arch);
+            }
+            
+            const gridHelper = new THREE.GridHelper(30, 30, 0x8b5cf6, 0x1a1a3a);
+            gridHelper.position.y = -2;
+            gridHelper.position.z = -10;
+            scene.add(gridHelper);
+            shipElements.push(gridHelper);
+            
+            const panelGeometry = new THREE.PlaneGeometry(1.5, 2);
+            
+            for(let i = 0; i < 6; i++) {
+                const panelMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x8b5cf6,
+                    transparent: true,
+                    opacity: 0.2
+                });
+                const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+                panel.position.x = (i % 2 === 0 ? 3 : -3);
+                panel.position.y = 0;
+                panel.position.z = -Math.floor(i / 2) * 4 - 5;
+                panel.rotation.y = (i % 2 === 0 ? -Math.PI / 4 : Math.PI / 4);
+                scene.add(panel);
+                shipElements.push(panel);
+            }
+        }
+        
+        function animate3D() {
+            animationId = requestAnimationFrame(animate3D);
+            
+            if(particles) {
+                particles.rotation.x += 0.0002;
+                particles.rotation.y += 0.0003;
+            }
+            
+            shipElements.forEach((el, i) => {
+                if(el.rotation) {
+                    el.rotation.z += 0.001 * (i % 2 === 0 ? 1 : -1);
+                }
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function updateThemeColors(theme) {
+            if(!particles) return;
+            
+            const colors = {
+                cyber: 0x00f0ff,
+                matrix: 0x00ff41,
+                retro: 0xff00ff,
+                minimal: 0xffffff
+            };
+            
+            particles.material.color.setHex(colors[theme] || colors.cyber);
+        }
+        
+        window.addEventListener('resize', () => {
+            if(camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+        
+        // ==================== SAFE LOCALSTORAGE ====================
+        function safeGetItem(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function safeSetItem(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                // Ignora se não puder salvar
+            }
+        }
+
+        // ==================== QUESTIONS DATABASE ====================
+        const questionsDB = {
+            hardware: [
+                { q: "Qual componente e considerado o cerebro do computador?", a: ["CPU", "GPU", "RAM", "SSD"], correct: 0 },
+                { q: "O que significa a sigla RAM?", a: ["Random Access Memory", "Read Always Memory", "Run Active Mode", "Ready Access Module"], correct: 0 },
+                { q: "Qual tipo de memoria e nao volatil?", a: ["SSD", "RAM", "Cache", "Registrador"], correct: 0 },
+                { q: "Qual a funcao principal da placa de video?", a: ["Processar graficos e imagens", "Armazenar dados", "Gerenciar rede", "Controlar audio"], correct: 0 },
+                { q: "O que e overclock?", a: ["Aumentar a frequencia do processador", "Resfriar o sistema", "Formatar o PC", "Instalar memoria"], correct: 0 },
+                { q: "Qual interface conecta monitores modernos?", a: ["HDMI", "VGA", "Serial", "Parallel"], correct: 0 },
+                { q: "O que mede a frequencia de um processador?", a: ["GHz", "Watts", "Volts", "Ampere"], correct: 0 },
+                { q: "Qual componente armazena o BIOS?", a: ["Flash Memory", "RAM", "Cache L3", "Registro"], correct: 0 },
+                { q: "O que e throughput?", a: ["Taxa de transferencia de dados", "Velocidade do clock", "Capacidade de memoria", "Tamanho do cache"], correct: 0 },
+                { q: "Qual o proposito do cooler em um PC?", a: ["Dissipar calor", "Melhorar audio", "Aumentar RAM", "Proteger contra virus"], correct: 0 },
+                { q: "O que significa NVMe?", a: ["NVM Express", "Non Volatile Memory enhanced", "New Virtual Memory", "Network Volume Media"], correct: 1 },
+                { q: "Qual e a voltagem padrao de fontes ATX?", a: ["12V", "5V", "3.3V", "24V"], correct: 0 },
+                { q: "O que e latencia CAS em memorias?", a: ["Tempo de acesso a coluna", "Velocidade de clock", "Tamanho do modulo", "Tipo de conexao"], correct: 0 },
+                { q: "Qual tipo de conexao e usado por placas PCIe?", a: ["Lanes seriais", "Parallel bus", "WiFi", "Bluetooth"], correct: 0 },
+                { q: "O que e socket LGA?", a: ["Tipo de encaixe de CPU", "Conector de memoria", "Porta USB", "Interface de video"], correct: 0 },
+                { q: "Qual a funcao do chipset na placa mae?", a: ["Gerenciar comunicacao entre componentes", "Processar dados", "Armazenar BIOS", "Fornecer energia"], correct: 0 },
+                { q: "O que sao fluxos de dados SIMD?", a: ["Instrucoes multiplas em dados unicos", "Processamento serial", "Memoria cache", "Protocolo de rede"], correct: 0 },
+                { q: "Qual tecnologia permite multiplas threads por nucleo?", a: ["Hyper-Threading", "Multi-core", "Dual-channel", "Overclock"], correct: 0 },
+                { q: "O que e TDP em processadores?", a: ["Thermal Design Power", "Total Data Processing", "Thread Distribution Protocol", "Technology Data Point"], correct: 0 },
+                { q: "Qual componente converte AC em DC no PC?", a: ["Fonte de alimentacao", "Placa mae", "CPU", "GPU"], correct: 0 }
+            ],
+            software: [
+                { q: "O que e um sistema operacional?", a: ["Software que gerencia recursos do computador", "Programa de edicao", "Jogo", "Antivirus"], correct: 0 },
+                { q: "Qual destes e um sistema operacional de codigo aberto?", a: ["Linux", "Windows", "macOS", "iOS"], correct: 0 },
+                { q: "O que e software livre?", a: ["Software com liberdade de uso e modificacao", "Software gratuito", "Software trial", "Software pirata"], correct: 0 },
+                { q: "Qual a funcao do kernel?", a: ["Nucleo do sistema operacional", "Interface grafica", "Navegador", "Antivirus"], correct: 0 },
+                { q: "O que e uma API?", a: ["Interface de Programacao de Aplicacoes", "Protocolo de Rede", "Sistema de Arquivos", "Driver"], correct: 0 },
+                { q: "O que significa GUI?", a: ["Interface Grafica do Usuario", "Global Unit Interface", "General User Input", "Graphics Utility Integration"], correct: 0 },
+                { q: "Qual e o sistema de arquivos padrao do Windows?", a: ["NTFS", "ext4", "FAT32", "HFS+"], correct: 0 },
+                { q: "O que e virtualizacao?", a: ["Criar versoes virtuais de recursos", "Compactar arquivos", "Criptografar dados", "Otimizar memoria"], correct: 0 },
+                { q: "Qual software e usado para edicao de planilhas?", a: ["Excel", "Word", "PowerPoint", "Photoshop"], correct: 0 },
+                { q: "O que e driver?", a: ["Software que controla hardware", "Antivirus", "Jogo", "Navegador"], correct: 0 },
+                { q: "O que significa SaaS?", a: ["Software as a Service", "System as a Server", "Security as a Solution", "Storage as a Service"], correct: 0 },
+                { q: "Qual metodo e usado para instalar programas no Linux?", a: ["Gerenciador de pacotes", "Setup.exe", "App Store", "Play Store"], correct: 0 },
+                { q: "O que e um compilador?", a: ["Traduz codigo fonte para codigo de maquina", "Editor de texto", "Depurador", "Interpretador"], correct: 0 },
+                { q: "Qual e a principal funcao de um banco de dados?", a: ["Armazenar e organizar dados", "Processar imagens", "Navegar na web", "Enviar emails"], correct: 0 },
+                { q: "O que e um bug?", a: ["Erro em software", "Virus", "Antivirus", "Atualizacao"], correct: 0 },
+                { q: "Qual e o formato de arquivo executavel do Windows?", a: [".exe", ".app", ".deb", ".rpm"], correct: 0 },
+                { q: "O que e firmware?", a: ["Software embarcado em hardware", "Sistema operacional", "Aplicativo movel", "Driver"], correct: 0 },
+                { q: "Qual tecnologia permite containers em Linux?", a: ["Docker", "VMware", "VirtualBox", "Wine"], correct: 0 },
+                { q: "O que e um daemon?", a: ["Processo em segundo plano", "Virus", "Interface grafica", "Compilador"], correct: 0 },
+                { q: "Qual e a funcao do gerenciador de tarefas?", a: ["Monitorar processos e recursos", "Editar textos", "Reproduzir videos", "Navegar na web"], correct: 0 }
+            ],
+            redes: [
+                { q: "O que e um endereco IP?", a: ["Identificador unico de dispositivos em rede", "Protocolo de seguranca", "Tipo de conexao", "Nome de dominio"], correct: 0 },
+                { q: "Qual protocolo e usado para navegacao web?", a: ["HTTP/HTTPS", "FTP", "SSH", "SMTP"], correct: 0 },
+                { q: "O que significa DNS?", a: ["Sistema de Nomes de Dominio", "Data Network Security", "Digital Name System", "Direct Network Service"], correct: 0 },
+                { q: "Qual e a camada do modelo OSI responsavel pelo roteamento?", a: ["Rede", "Transporte", "Aplicacao", "Enlace"], correct: 0 },
+                { q: "O que e um roteador?", a: ["Dispositivo que conecta redes diferentes", "Dispositivo de armazenamento", "Monitor", "Teclado"], correct: 0 },
+                { q: "Qual e a diferenca entre switch e hub?", a: ["Switch envia dados para porta especifica", "Hub e mais rapido", "Nenhuma diferenca", "Hub e wireless"], correct: 0 },
+                { q: "O que e IPv6?", a: ["Nova versao do protocolo IP", "Protocolo de seguranca", "Tipo de rede", "Endereco MAC"], correct: 0 },
+                { q: "Qual porta e usada por HTTPS?", a: ["443", "80", "21", "22"], correct: 0 },
+                { q: "O que e VPN?", a: ["Rede Virtual Privada", "Very Private Network", "Virtual Protocol Node", "Verified Public Network"], correct: 0 },
+                { q: "Qual protocolo e usado para enviar emails?", a: ["SMTP", "POP3", "IMAP", "HTTP"], correct: 0 },
+                { q: "O que e mascara de sub-rede?", a: ["Define a porcao de rede e host do IP", "Tipo de firewall", "Protocolo de seguranca", "Endereco MAC"], correct: 0 },
+                { q: "Qual tecnologia permite WiFi?", a: ["802.11", "802.3", "Bluetooth", "Ethernet"], correct: 0 },
+                { q: "O que e NAT?", a: ["Network Address Translation", "Network Access Technology", "Node Application Transfer", "New Address Table"], correct: 0 },
+                { q: "Qual e a velocidade padrao do Ethernet Gigabit?", a: ["1000 Mbps", "100 Mbps", "10 Mbps", "10 Gbps"], correct: 0 },
+                { q: "O que e ping?", a: ["Utilitario para testar conectividade", "Protocolo de seguranca", "Tipo de rede", "Endereco IP"], correct: 0 },
+                { q: "Qual protocolo garante entrega de dados?", a: ["TCP", "UDP", "ICMP", "ARP"], correct: 0 },
+                { q: "O que e um firewall?", a: ["Sistema de seguranca de rede", "Tipo de roteador", "Protocolo", "Antivirus"], correct: 0 },
+                { q: "Qual endereco IP e usado para loopback?", a: ["127.0.0.1", "192.168.0.1", "10.0.0.1", "172.16.0.1"], correct: 0 },
+                { q: "O que e DHCP?", a: ["Protocolo de configuracao automatica de IP", "Tipo de DNS", "Protocolo de seguranca", "Servidor web"], correct: 0 },
+                { q: "Qual modelo tem 4 camadas?", a: ["TCP/IP", "OSI", "UDP", "HTTP"], correct: 0 }
+            ],
+            seguranca: [
+                { q: "O que e malware?", a: ["Software malicioso", "Antivirus", "Atualizacao", "Driver"], correct: 0 },
+                { q: "Qual e a funcao de um antivirus?", a: ["Detectar e remover malware", "Criar virus", "Acelerar PC", "Instalar programas"], correct: 0 },
+                { q: "O que e phishing?", a: ["Golpe para roubar informacoes", "Tipo de virus", "Antivirus", "Firewall"], correct: 0 },
+                { q: "O que significa VPN?", a: ["Rede Virtual Privada", "Virus Protection Network", "Virtual Private Node", "Verified Protocol Network"], correct: 0 },
+                { q: "O que e criptografia?", a: ["Tecnica de codificacao de dados", "Tipo de virus", "Protocolo de rede", "Sistema operacional"], correct: 0 },
+                { q: "Qual tipo de ataque tenta descobrir senhas?", a: ["Brute Force", "DDoS", "Phishing", "Spoofing"], correct: 0 },
+                { q: "O que e um ataque DDoS?", a: ["Sobrecarga de servidores", "Roubo de senhas", "Infeccao por virus", "Phishing"], correct: 0 },
+                { q: "Qual protocolo garante comunicacao segura?", a: ["HTTPS", "HTTP", "FTP", "Telnet"], correct: 0 },
+                { q: "O que e ransomware?", a: ["Malware que criptografa arquivos", "Antivirus", "Firewall", "Atualizacao"], correct: 0 },
+                { q: "O que e autenticacao de dois fatores?", a: ["Seguranca com duas etapas de verificacao", "Tipo de virus", "Protocolo de rede", "Sistema operacional"], correct: 0 },
+                { q: "O que e um certificado digital?", a: ["Documento eletronico de identidade", "Tipo de virus", "Firewall", "Antivirus"], correct: 0 },
+                { q: "Qual e a funcao de um token de seguranca?", a: ["Gerar senhas temporarias", "Criar virus", "Armazenar dados", "Acelerar rede"], correct: 0 },
+                { q: "O que e engenharia social?", a: ["Manipulacao psicologica para golpes", "Tipo de programacao", "Rede social", "Protocolo"], correct: 0 },
+                { q: "Qual ataque explora vulnerabilidades desconhecidas?", a: ["Zero-day", "DDoS", "Phishing", "Brute Force"], correct: 0 },
+                { q: "O que e um keylogger?", a: ["Programa que captura teclas digitadas", "Antivirus", "Firewall", "Sistema operacional"], correct: 0 },
+                { q: "Qual tecnologia protege contra interceptacao?", a: ["Criptografia", "Firewall", "Antivirus", "Proxy"], correct: 0 },
+                { q: "O que e um honeypot?", a: ["Armadilha para detectar ataques", "Tipo de mel", "Rede social", "Protocolo"], correct: 0 },
+                { q: "O que significa CIA na seguranca?", a: ["Confidencialidade, Integridade, Disponibilidade", "Central Intelligence Agency", "Certified Internet Administrator", "Computer Internet Access"], correct: 0 },
+                { q: "Qual tipo de firewall analisa o conteudo dos pacotes?", a: ["Application-level", "Packet filtering", "Stateful", "Network-level"], correct: 0 },
+                { q: "O que e spoofing?", a: ["Falsificacao de identidade", "Tipo de antivirus", "Protocolo de rede", "Sistema operacional"], correct: 0 }
+            ],
+            programacao: [
+                { q: "O que e uma variavel?", a: ["Espaco de armazenamento na memoria", "Funcao", "Classe", "Objeto"], correct: 0 },
+                { q: "Qual e a estrutura de repeticao em Python?", a: ["for/while", "if/else", "switch", "case"], correct: 0 },
+                { q: "O que e uma funcao?", a: ["Bloco de codigo reutilizavel", "Variavel", "Classe", "Objeto"], correct: 0 },
+                { q: "O que significa OOP?", a: ["Programacao Orientada a Objetos", "Object Oriented Protocol", "Online Operation Program", "Open Source Platform"], correct: 0 },
+                { q: "Qual linguagem e usada para estilizar paginas web?", a: ["CSS", "HTML", "JavaScript", "Python"], correct: 0 },
+                { q: "O que e um array?", a: ["Colecao ordenada de elementos", "Funcao", "Variavel", "Classe"], correct: 0 },
+                { q: "Qual operador compara valores em JavaScript?", a: ["===", "=", "=>", "->"], correct: 0 },
+                { q: "O que e um loop infinito?", a: ["Repeticao sem condicao de parada", "Funcao", "Variavel", "Classe"], correct: 0 },
+                { q: "Qual palavra-chave define uma classe em Python?", a: ["class", "def", "function", "object"], correct: 0 },
+                { q: "O que e heranca em OOP?", a: ["Reutilizacao de codigo entre classes", "Variavel global", "Funcao", "Loop"], correct: 0 },
+                { q: "Qual e o resultado de 10 % 3?", a: ["1", "3", "0", "10"], correct: 0 },
+                { q: "O que e recursao?", a: ["Funcao que chama a si mesma", "Loop", "Variavel", "Classe"], correct: 0 },
+                { q: "Qual tipo de dado representa verdadeiro/falso?", a: ["Boolean", "Integer", "String", "Float"], correct: 0 },
+                { q: "O que e um parametro?", a: ["Valor passado para uma funcao", "Variavel global", "Classe", "Objeto"], correct: 0 },
+                { q: "Qual comando encerra um loop em Python?", a: ["break", "exit", "stop", "end"], correct: 0 },
+                { q: "O que e polimorfismo?", a: ["Mesmo metodo com comportamentos diferentes", "Heranca multipla", "Variavel constante", "Loop infinito"], correct: 0 },
+                { q: "Qual linguagem e interpretada e nao compilada?", a: ["Python", "C++", "Rust", "Go"], correct: 0 },
+                { q: "O que e um comentario?", a: ["Texto ignorado pelo compilador", "Variavel", "Funcao", "Classe"], correct: 0 },
+                { q: "Qual estrutura armazena pares chave-valor?", a: ["Dicionario", "Array", "Lista", "Tupla"], correct: 0 },
+                { q: "O que e debug?", a: ["Processo de encontrar e corrigir erros", "Criar erros", "Compilar codigo", "Executar programa"], correct: 0 }
+            ],
+            historia: [
+                { q: "Quem e considerado o pai da computacao?", a: ["Alan Turing", "Bill Gates", "Steve Jobs", "Mark Zuckerberg"], correct: 0 },
+                { q: "Em que ano foi criada a primeira pagina web?", a: ["1991", "1985", "2000", "1975"], correct: 0 },
+                { q: "Qual foi o primeiro computador pessoal?", a: ["Altair 8800", "IBM PC", "Apple I", "Commodore 64"], correct: 0 },
+                { q: "Quem fundou a Microsoft?", a: ["Bill Gates e Paul Allen", "Steve Jobs", "Mark Zuckerberg", "Larry Page"], correct: 0 },
+                { q: "Em que ano foi lancado o primeiro iPhone?", a: ["2007", "2005", "2010", "2000"], correct: 0 },
+                { q: "Qual empresa criou o sistema Unix?", a: ["AT&T Bell Labs", "Microsoft", "Apple", "IBM"], correct: 0 },
+                { q: "Quem criou a World Wide Web?", a: ["Tim Berners-Lee", "Bill Gates", "Steve Jobs", "Vint Cerf"], correct: 0 },
+                { q: "Qual foi o primeiro computador eletronico?", a: ["ENIAC", "UNIVAC", "IBM 360", "Apple I"], correct: 0 },
+                { q: "Em que ano foi fundada a Apple?", a: ["1976", "1980", "1990", "2000"], correct: 0 },
+                { q: "Quem criou o sistema operacional Linux?", a: ["Linus Torvalds", "Bill Gates", "Steve Jobs", "Mark Shuttleworth"], correct: 0 },
+                { q: "Qual era o nome do primeiro virus de computador?", a: ["Creeper", "ILOVEYOU", "Morris", "Melissa"], correct: 0 },
+                { q: "Em que ano foi lancado o Windows 95?", a: ["1995", "1990", "2000", "1985"], correct: 0 },
+                { q: "Qual empresa criou o primeiro smartphone?", a: ["IBM", "Apple", "Samsung", "Nokia"], correct: 0 },
+                { q: "Quem criou a linguagem de programacao C?", a: ["Dennis Ritchie", "Ken Thompson", "Bill Gates", "James Gosling"], correct: 0 },
+                { q: "Em que ano a internet se tornou publica?", a: ["1991", "1985", "1995", "2000"], correct: 0 },
+                { q: "Qual foi o primeiro navegador web?", a: ["WorldWideWeb", "Mosaic", "Netscape", "Internet Explorer"], correct: 0 },
+                { q: "Quem e conhecido como o pai do mouse?", a: ["Douglas Engelbart", "Bill Gates", "Steve Jobs", "Alan Kay"], correct: 0 },
+                { q: "Qual empresa lancou o primeiro tablet?", a: ["Apple", "Microsoft", "Samsung", "IBM"], correct: 0 },
+                { q: "Em que ano foi criada a Google?", a: ["1998", "1995", "2000", "2005"], correct: 0 },
+                { q: "Qual foi o primeiro processador Intel?", a: ["4004", "8086", "80386", "Pentium"], correct: 0 }
+            ],
+            aleatorio: []
+        };
+
+        Object.keys(questionsDB).forEach(cat => {
+            if(cat !== 'aleatorio') {
+                questionsDB.aleatorio.push(...questionsDB[cat]);
+            }
+        });
+
+        // ==================== GAME STATE ====================
+        let gameState = {
+            playerName: '',
+            playerAvatar: '',
+            currentCategory: '',
+            currentQuestionIndex: 0,
+            questions: [],
+            score: 0,
+            lives: 3,
+            combo: 0,
+            maxCombo: 0,
+            correctAnswers: 0,
+            hintsUsed: { fifty: false, skip: false, time: false },
+            timeRemaining: 30,
+            timerInterval: null,
+            isKingChallenge: false,
+            kingChallenged: false
+        };
+
+        // ==================== DATA PERSISTENCE (SAFE) ====================
+        function saveRanking(playerName, avatar, score) {
+            try {
+                const rankings = JSON.parse(safeGetItem('showInformatica_ranking') || '[]');
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                
+                const filtered = rankings.filter(r => !(r.name === playerName && r.month === currentMonth));
+                
+                filtered.push({
+                    name: playerName,
+                    avatar: avatar,
+                    score: score,
+                    month: currentMonth,
+                    date: new Date().toISOString()
+                });
+                
+                filtered.sort((a, b) => b.score - a.score);
+                
+                safeSetItem('showInformatica_ranking', JSON.stringify(filtered.slice(0, 50)));
+            } catch (e) {
+                console.error("Erro ao salvar ranking:", e);
+            }
+        }
+
+        function getRanking() {
+            try {
+                const rankings = JSON.parse(safeGetItem('showInformatica_ranking') || '[]');
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                return rankings.filter(r => r.month === currentMonth);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveKing(name, avatar, score) {
+            try {
+                safeSetItem('showInformatica_king', JSON.stringify({
+                    name, avatar, score, date: new Date().toISOString()
+                }));
+            } catch (e) {
+                console.error("Erro ao salvar rei:", e);
+            }
+        }
+
+        function getKing() {
+            try {
+                return JSON.parse(safeGetItem('showInformatica_king') || 'null');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // ==================== UI ELEMENTS ====================
+        const screens = {
+            menu: document.getElementById('menu-screen'),
+            category: document.getElementById('category-screen'),
+            game: document.getElementById('game-screen'),
+            ranking: document.getElementById('ranking-screen')
+        };
+
+        const modals = {
+            gameOver: document.getElementById('game-over-modal'),
+            king: document.getElementById('king-modal')
+        };
+
+        const avatarOptions = ['👤', '👩', '🦄', '💻', '🤖', '😎', '👑', '🦖', '🚀', '🛸', '👾', '👻', '🥷', '😱', '🥸', '🧙', '👽', '🕵️', '🧑', '🙂'];
+
+        // ==================== INITIALIZATION ====================
+        function init() {
+            try {
+                init3DBackground();
+            } catch (error) {
+                console.error("Erro ao carregar o background 3D. O jogo continuará sem 3D.", error);
+                document.getElementById('bg-canvas').style.display = 'none';
+                document.body.style.background = 'linear-gradient(135deg, #0a0a1a, #1a0a2e)';
+            }
+            
+            setupAvatarSelector();
+            setupCategoryCards();
+            setupEventListeners();
+            loadSavedPlayer();
+        }
+
+        function setupAvatarSelector() {
+            const selector = document.getElementById('avatar-selector');
+            if (!selector) return;
+            selector.innerHTML = '';
+            
+            avatarOptions.forEach((avatar, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'avatar-option' + (i === 0 ? ' selected' : '');
+                btn.innerHTML = avatar;
+                btn.type = 'button';
+                btn.dataset.index = i;
+                btn.addEventListener('click', () => selectAvatar(i));
+                selector.appendChild(btn);
+            });
+        }
+
+        function selectAvatar(index) {
+            document.querySelectorAll('.avatar-option').forEach((btn, i) => {
+                btn.classList.toggle('selected', i === index);
+            });
+            gameState.playerAvatar = avatarOptions[index];
+            checkStartButton();
+        }
+
+        function setupCategoryCards() {
+            const categories = [
+                { id: 'hardware', name: 'Hardware', icon: '💻' },
+                { id: 'software', name: 'Software', icon: '💾' },
+                { id: 'redes', name: 'Redes', icon: '🌐' },
+                { id: 'seguranca', name: 'Seguranca', icon: '🔒' },
+                { id: 'programacao', name: 'Programacao', icon: '⚡' },
+                { id: 'historia', name: 'Historia', icon: '📚' },
+                { id: 'aleatorio', name: 'Aleatorio', icon: '🎲' }
+            ];
+
+            const grid = document.getElementById('categories-grid');
+            grid.innerHTML = '';
+            
+            categories.forEach(cat => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'category-card';
+                card.innerHTML = `
+                    <div class="category-icon">${cat.icon}</div>
+                    <div class="category-name">${cat.name}</div>
+                    <div class="category-count">10 perguntas aleatorias</div>
+                `;
+                card.addEventListener('click', () => startGame(cat.id));
+                grid.appendChild(card);
+            });
+        }
+
+        function setupEventListeners() {
+            document.getElementById('player-name').addEventListener('input', (e) => {
+                gameState.playerName = e.target.value.trim();
+                checkStartButton();
+            });
+
+            document.getElementById('start-btn').addEventListener('click', () => showScreen('category'));
+
+            document.getElementById('ranking-btn').addEventListener('click', showRanking);
+            document.getElementById('back-from-ranking').addEventListener('click', () => showScreen('menu'));
+            document.getElementById('back-menu-btn').addEventListener('click', () => showScreen('menu'));
+
+            document.getElementById('play-again-btn').addEventListener('click', () => {
+                modals.gameOver.classList.remove('active');
+                showScreen('category');
+            });
+            document.getElementById('go-menu-btn').addEventListener('click', () => {
+                modals.gameOver.classList.remove('active');
+                showScreen('menu');
+            });
+
+            document.getElementById('accept-king-btn').addEventListener('click', () => {
+                modals.king.classList.remove('active');
+                startKingChallenge();
+            });
+
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const theme = btn.dataset.theme;
+                    document.body.dataset.theme = theme;
+                    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    updateThemeColors(theme);
+                });
+            });
+
+            document.getElementById('hint-5050').addEventListener('click', useFiftyFifty);
+            document.getElementById('hint-skip').addEventListener('click', useSkip);
+            document.getElementById('hint-time').addEventListener('click', useExtraTime);
+        }
+
+        function loadSavedPlayer() {
+            const saved = safeGetItem('showInformatica_player');
+            if(saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    gameState.playerName = data.name || '';
+                    gameState.playerAvatar = data.avatar || avatarOptions[0];
+                    document.getElementById('player-name').value = gameState.playerName;
+                    const avatarIndex = avatarOptions.indexOf(gameState.playerAvatar);
+                    if(avatarIndex >= 0) selectAvatar(avatarIndex);
+                } catch (e) {
+                    gameState.playerAvatar = avatarOptions[0];
+                }
+            } else {
+                gameState.playerAvatar = avatarOptions[0];
+            }
+            checkStartButton();
+        }
+
+        function checkStartButton() {
+            const btn = document.getElementById('start-btn');
+            btn.disabled = !gameState.playerName || !gameState.playerAvatar;
+        }
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.remove('active'));
+            screens[screenName].classList.add('active');
+            
+            const header = document.getElementById('game-header');
+            header.style.display = screenName === 'menu' || screenName === 'ranking' ? 'none' : 'flex';
+        }
+
+        // ==================== GAME LOGIC ====================
+        function startGame(category) {
+            gameState.currentCategory = category;
+            
+            const allQuestions = [...questionsDB[category]];
+            gameState.questions = shuffleArray(allQuestions).slice(0, 10);
+            
+            gameState.currentQuestionIndex = 0;
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.combo = 0;
+            gameState.maxCombo = 0;
+            gameState.correctAnswers = 0;
+            gameState.hintsUsed = { fifty: false, skip: false, time: false };
+            gameState.kingChallenged = false;
+
+            safeSetItem('showInformatica_player', JSON.stringify({
+                name: gameState.playerName,
+                avatar: gameState.playerAvatar
+            }));
+
+            updateUI();
+            showScreen('game');
+            loadQuestion();
+
+            document.getElementById('hint-5050-count').textContent = '1';
+            document.getElementById('hint-skip-count').textContent = '1';
+            document.getElementById('hint-time-count').textContent = '1';
+            document.getElementById('hint-5050').disabled = false;
+            document.getElementById('hint-skip').disabled = false;
+            document.getElementById('hint-time').disabled = false;
+        }
+
+        function loadQuestion() {
+            if(gameState.currentQuestionIndex >= gameState.questions.length) {
+                endGame();
+                return;
+            }
+
+            const question = gameState.questions[gameState.currentQuestionIndex];
+            const categoryNames = {
+                hardware: 'Hardware',
+                software: 'Software',
+                redes: 'Redes',
+                seguranca: 'Seguranca',
+                programacao: 'Programacao',
+                historia: 'Historia',
+                aleatorio: 'Aleatorio'
+            };
+
+            document.getElementById('question-number').textContent = `Pergunta ${gameState.currentQuestionIndex + 1}/10`;
+            document.getElementById('question-category').textContent = gameState.isKingChallenge ? 'DESAFIO DO REI' : categoryNames[gameState.currentCategory];
+            document.getElementById('question-text').textContent = question.q;
+
+            const shuffledAnswers = shuffleAnswersWithCorrect(question.a, question.correct);
+            
+            const letters = ['A', 'B', 'C', 'D'];
+            const grid = document.getElementById('answers-grid');
+            grid.innerHTML = '';
+
+            shuffledAnswers.forEach((answer, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.innerHTML = `<span class="answer-letter">${letters[i]}</span><span>${answer.text}</span>`;
+                btn.dataset.index = i;
+                btn.dataset.correct = answer.isCorrect ? 'true' : 'false';
+                btn.addEventListener('click', () => selectAnswer(i, answer.isCorrect));
+                grid.appendChild(btn);
+            });
+
+            gameState.timeRemaining = 30;
+            startTimer();
+        }
+
+        function shuffleAnswersWithCorrect(answers, correctIndex) {
+            const indexed = answers.map((text, i) => ({
+                text: text,
+                isCorrect: i === correctIndex
+            }));
+            return shuffleArray(indexed);
+        }
+
+        function startTimer() {
+            clearInterval(gameState.timerInterval);
+            
+            const timerRing = document.getElementById('timer-ring');
+            const timerText = document.getElementById('timer-text');
+            const circumference = 2 * Math.PI * 36;
+            timerRing.style.strokeDasharray = circumference;
+            timerRing.style.strokeDashoffset = 0;
+
+            gameState.timerInterval = setInterval(() => {
+                gameState.timeRemaining--;
+                timerText.textContent = gameState.timeRemaining;
+                
+                const progress = (30 - gameState.timeRemaining) / 30;
+                timerRing.style.strokeDashoffset = circumference * progress;
+
+                if(gameState.timeRemaining <= 10) {
+                    timerText.style.color = 'var(--danger)';
+                    timerRing.style.stroke = 'var(--danger)';
+                } else {
+                    timerText.style.color = 'var(--primary)';
+                    timerRing.style.stroke = 'var(--primary)';
+                }
+
+                if(gameState.timeRemaining <= 0) {
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function handleTimeout() {
+            clearInterval(gameState.timerInterval);
+            gameState.lives--;
+            gameState.combo = 0;
+            updateUI();
+
+            if(gameState.lives <= 0) {
+                endGame();
+            } else {
+                showFeedback(false, -1);
+                setTimeout(() => {
+                    gameState.currentQuestionIndex++;
+                    loadQuestion();
+                }, 1500);
+            }
+        }
+
+        function selectAnswer(index, isCorrect) {
+            clearInterval(gameState.timerInterval);
+
+            if(isCorrect) {
+                gameState.correctAnswers++;
+                gameState.combo++;
+                if(gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
+
+                let points = 100;
+                
+                if(gameState.combo >= 5) points *= 1.5;
+                if(gameState.combo >= 8) points *= 2;
+                if(gameState.combo >= 10) points *= 3;
+                
+                if(gameState.timeRemaining >= 20) points += 50;
+                
+                if(gameState.isKingChallenge) {
+                    points = 1000;
+                }
+
+                gameState.score += Math.round(points);
+                
+                if(gameState.combo === 9 && !gameState.kingChallenged) {
+                    gameState.kingChallenged = true;
+                    setTimeout(() => {
+                        modals.king.classList.add('active');
+                    }, 1500);
+                }
+
+                createConfetti();
+            } else {
+                gameState.lives--;
+                gameState.combo = 0;
+                
+                if(gameState.isKingChallenge) {
+                    gameState.score = 0;
+                }
+            }
+
+            showFeedback(isCorrect, index);
+            updateUI();
+
+            if(gameState.lives <= 0) {
+                setTimeout(endGame, 1500);
+            } else {
+                setTimeout(() => {
+                    gameState.currentQuestionIndex++;
+                    gameState.isKingChallenge = false;
+                    loadQuestion();
+                }, 1500);
+            }
+        }
+
+        function showFeedback(isCorrect, selectedIndex) {
+            const buttons = document.querySelectorAll('.answer-btn');
+
+            buttons.forEach((btn, i) => {
+                btn.disabled = true;
+                if(btn.dataset.correct === 'true') {
+                    btn.classList.add('correct');
+                } else if(i === selectedIndex && !isCorrect) {
+                    btn.classList.add('incorrect');
+                }
+            });
+        }
+
+        function startKingChallenge() {
+            gameState.isKingChallenge = true;
+            const allQuestions = questionsDB.aleatorio.filter(q => !gameState.questions.includes(q));
+            if(allQuestions.length > 0) {
+                const randomQuestion = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+                gameState.questions[gameState.currentQuestionIndex] = randomQuestion;
+            }
+            loadQuestion();
+        }
+
+        // ==================== HINTS ====================
+        function useFiftyFifty() {
+            if(gameState.hintsUsed.fifty) return;
+            gameState.hintsUsed.fifty = true;
+            
+            const buttons = document.querySelectorAll('.answer-btn');
+            const wrongButtons = [];
+            
+            buttons.forEach((btn, i) => {
+                if(btn.dataset.correct === 'false') {
+                    wrongButtons.push(btn);
+                }
+            });
+            
+            shuffleArray(wrongButtons);
+            
+            for(let i = 0; i < 2 && i < wrongButtons.length; i++) {
+                wrongButtons[i].style.visibility = 'hidden';
+                wrongButtons[i].disabled = true;
+            }
+
+            document.getElementById('hint-5050-count').textContent = '0';
+            document.getElementById('hint-5050').disabled = true;
+        }
+
+        function useSkip() {
+            if(gameState.hintsUsed.skip) return;
+            gameState.hintsUsed.skip = true;
+            gameState.combo = 0;
+
+            document.getElementById('hint-skip-count').textContent = '0';
+            document.getElementById('hint-skip').disabled = true;
+            
+            clearInterval(gameState.timerInterval);
+            gameState.currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function useExtraTime() {
+            if(gameState.hintsUsed.time) return;
+            gameState.hintsUsed.time = true;
+            
+            gameState.timeRemaining += 10;
+            document.getElementById('timer-text').textContent = gameState.timeRemaining;
+            document.getElementById('hint-time-count').textContent = '0';
+            document.getElementById('hint-time').disabled = true;
+        }
+
+        // ==================== UI UPDATES ====================
+        function updateUI() {
+            document.getElementById('score-display').textContent = gameState.score;
+            
+            const livesContainer = document.getElementById('lives-display');
+            livesContainer.innerHTML = '';
+            for(let i = 0; i < 3; i++) {
+                const heart = document.createElement('span');
+                heart.className = 'life' + (i >= gameState.lives ? ' lost' : '');
+                heart.innerHTML = '❤';
+                livesContainer.appendChild(heart);
+            }
+
+            const comboDisplay = document.getElementById('combo-display');
+            if(gameState.combo > 1) {
+                comboDisplay.classList.add('active');
+                document.getElementById('combo-value').textContent = `x${gameState.combo}`;
+            } else {
+                comboDisplay.classList.remove('active');
+            }
+        }
+
+        // ==================== END GAME ====================
+        function endGame() {
+            clearInterval(gameState.timerInterval);
+            
+            const achievements = [];
+            
+            if(gameState.correctAnswers === 10 && gameState.lives === 3) {
+                achievements.push('Perfeicao');
+            }
+            
+            if(gameState.maxCombo >= 10) {
+                achievements.push('Combo Master');
+            }
+            
+            if(!gameState.hintsUsed.fifty && !gameState.hintsUsed.skip && !gameState.hintsUsed.time) {
+                achievements.push('Autodidata');
+            }
+            
+            if(gameState.lives === 1) {
+                achievements.push('Sobrevivente');
+            }
+
+            if(gameState.score > 0) {
+                saveRanking(gameState.playerName, gameState.playerAvatar, gameState.score);
+            }
+
+            const title = gameState.lives > 0 ? 'Parabens!' : 'Fim de Jogo';
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-score').textContent = gameState.score;
+            document.getElementById('modal-correct').textContent = gameState.correctAnswers;
+            document.getElementById('modal-combo').textContent = gameState.maxCombo;
+
+            const achievementsContainer = document.getElementById('achievements-earned');
+            achievementsContainer.innerHTML = '';
+            achievements.forEach(a => {
+                const badge = document.createElement('span');
+                badge.className = 'achievement-badge';
+                badge.textContent = a;
+                achievementsContainer.appendChild(badge);
+            });
+
+            modals.gameOver.classList.add('active');
+        }
+
+        // ==================== RANKING ====================
+        function showRanking() {
+            const ranking = getRanking();
+            const king = getKing();
+            const currentMonth = new Date();
+            const monthNames = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 
+                               'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            
+            document.getElementById('ranking-month').textContent = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
+
+            if(king) {
+                document.getElementById('king-display').style.display = 'flex';
+                document.getElementById('king-avatar').innerHTML = '👑';
+                document.getElementById('king-name').textContent = king.name;
+                document.getElementById('king-score').textContent = `${king.score} pts`;
+            } else {
+                document.getElementById('king-display').style.display = 'none';
+            }
+
+            const list = document.getElementById('ranking-list');
+            list.innerHTML = '';
+
+            ranking.slice(0, 10).forEach((entry, i) => {
+                const item = document.createElement('div');
+                item.className = 'ranking-item';
+                if(entry.name === gameState.playerName) item.classList.add('current-player');
+
+                const positionClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+
+                item.innerHTML = `
+                    <span class="rank-position ${positionClass}">${i + 1}</span>
+                    <span class="rank-avatar">${entry.avatar}</span>
+                    <div class="rank-info">
+                        <div class="rank-name">${entry.name}</div>
+                    </div>
+                    <span class="rank-score">${entry.score}</span>
+                `;
+                list.appendChild(item);
+            });
+
+            if(ranking.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Nenhuma pontuacao este mes</p>';
+            }
+
+            showScreen('ranking');
+        }
+
+        // ==================== UTILITIES ====================
+        function shuffleArray(array) {
+            const arr = [...array];
+            for(let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function createConfetti() {
+            const colors = ['#00f0ff', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444'];
+            
+            for(let i = 0; i < 30; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = '-10px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                document.body.appendChild(confetti);
+
+                const animation = confetti.animate([
+                    { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+                    { transform: `translateY(100vh) rotate(${Math.random() * 360}deg)`, opacity: 0 }
+                ], {
+                    duration: 2000 + Math.random() * 1000,
+                    easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                });
+
+                animation.onfinish = () => confetti.remove();
+            }
+        }
+
+        // ==================== START ====================
+        init();
+    </script>
+</body>
+</html>
